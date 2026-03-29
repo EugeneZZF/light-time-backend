@@ -1,0 +1,30 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: light-time_bd
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 12351
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - db
+    environment:
+      PORT: 4242
+      ADMIN_JWT_SECRET: admin-secret
+      DATABASE_URL: postgresql://postgres:12351@db:5432/light-time_bd?schema=public
+    ports:
+      - '4242:4242'
+    volumes:
+      - uploads_data:/app/uploads
+
+volumes:
+  postgres_data:
+  uploads_data:
