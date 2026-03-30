@@ -865,6 +865,10 @@ export class AdminService {
   }
 
   async bootstrapAdmin(dto: CreateAdminBootstrapDto) {
+    if (dto.secret !== 'admin-secret') {
+      throw new UnauthorizedException('Invalid bootstrap secret');
+    }
+
     const existingUser = await prisma.user.findUnique({
       where: { email: dto.email },
       select: { id: true },
