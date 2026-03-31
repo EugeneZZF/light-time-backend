@@ -101,13 +101,13 @@ export class AdminController {
     return this.adminService.login(body);
   }
 
-  // @Public()
-  // @Post('auth/bootstrap')
-  // @ApiTags(ADMIN_SWAGGER_TAGS.auth)
-  // @ApiOperation({ summary: 'Create admin user (temporary public endpoint)' })
-  // bootstrapAdmin(@Body() body: CreateAdminBootstrapDto) {
-  //   return this.adminService.bootstrapAdmin(body);
-  // }
+  @Public()
+  @Post('auth/bootstrap')
+  @ApiTags(ADMIN_SWAGGER_TAGS.auth)
+  @ApiOperation({ summary: 'Create admin user (temporary public endpoint)' })
+  bootstrapAdmin(@Body() body: CreateAdminBootstrapDto) {
+    return this.adminService.bootstrapAdmin(body);
+  }
 
   @Post('auth/refresh')
   @ApiTags(ADMIN_SWAGGER_TAGS.auth)
