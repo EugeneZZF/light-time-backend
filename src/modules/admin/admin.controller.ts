@@ -33,10 +33,17 @@ import type { Request, Response } from 'express';
 import { diskStorage } from 'multer';
 import { AdminService } from './admin.service';
 import { Public } from './auth/public.decorator';
-import { AdminLoginDto, CreateAdminBootstrapDto } from './auth/dto/admin-login.dto';
+import {
+  AdminLoginDto,
+  CreateAdminBootstrapDto,
+} from './auth/dto/admin-login.dto';
 import { AdminJwtAuthGuard } from './auth/admin-jwt-auth.guard';
 import { AdminJwtUser } from './auth/admin-jwt.strategy';
-import { buildStoredFilename, ensureUploadsDir, UPLOADS_DIR } from './admin-files';
+import {
+  buildStoredFilename,
+  ensureUploadsDir,
+  UPLOADS_DIR,
+} from './admin-files';
 import type { StoredUploadFile } from './admin-files';
 import {
   CreateAdminArticleDto,
@@ -94,13 +101,13 @@ export class AdminController {
     return this.adminService.login(body);
   }
 
-  @Public()
-  @Post('auth/bootstrap')
-  @ApiTags(ADMIN_SWAGGER_TAGS.auth)
-  @ApiOperation({ summary: 'Create admin user (temporary public endpoint)' })
-  bootstrapAdmin(@Body() body: CreateAdminBootstrapDto) {
-    return this.adminService.bootstrapAdmin(body);
-  }
+  // @Public()
+  // @Post('auth/bootstrap')
+  // @ApiTags(ADMIN_SWAGGER_TAGS.auth)
+  // @ApiOperation({ summary: 'Create admin user (temporary public endpoint)' })
+  // bootstrapAdmin(@Body() body: CreateAdminBootstrapDto) {
+  //   return this.adminService.bootstrapAdmin(body);
+  // }
 
   @Post('auth/refresh')
   @ApiTags(ADMIN_SWAGGER_TAGS.auth)
@@ -134,7 +141,9 @@ export class AdminController {
   @ApiTags(ADMIN_SWAGGER_TAGS.products)
   @ApiOperation({ summary: 'Create product (admin)' })
   createProduct(@Body() body: CreateAdminProductDto) {
-    return this.adminService.createAdminProduct(body as unknown as Record<string, unknown>);
+    return this.adminService.createAdminProduct(
+      body as unknown as Record<string, unknown>,
+    );
   }
 
   @Get('products/:id')
@@ -149,8 +158,14 @@ export class AdminController {
   @ApiTags(ADMIN_SWAGGER_TAGS.products)
   @ApiOperation({ summary: 'Update product by id (admin)' })
   @ApiParam({ name: 'id', type: Number, description: 'Product id' })
-  patchProduct(@Param('id', ParseIntPipe) id: number, @Body() body: UpdateAdminProductDto) {
-    return this.adminService.patchAdminProduct(id, body as unknown as Record<string, unknown>);
+  patchProduct(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateAdminProductDto,
+  ) {
+    return this.adminService.patchAdminProduct(
+      id,
+      body as unknown as Record<string, unknown>,
+    );
   }
 
   @Delete('products/:id')
@@ -171,7 +186,10 @@ export class AdminController {
   @Public()
   @Get('categories/tree')
   @ApiTags(ADMIN_SWAGGER_TAGS.categories)
-  @ApiOperation({ summary: 'Get categories tree: root -> subcategory A -> subcategory B (admin)' })
+  @ApiOperation({
+    summary:
+      'Get categories tree: root -> subcategory A -> subcategory B (admin)',
+  })
   getCategoryTree() {
     return this.adminService.getAdminCategoryTree();
   }
@@ -180,13 +198,21 @@ export class AdminController {
   @ApiTags(ADMIN_SWAGGER_TAGS.categories)
   @ApiOperation({ summary: 'Create category (admin)' })
   createCategory(@Body() body: CreateAdminCategoryDto) {
-    return this.adminService.createAdminCategory(body as unknown as Record<string, unknown>);
+    return this.adminService.createAdminCategory(
+      body as unknown as Record<string, unknown>,
+    );
   }
 
   @Post('categories/:parentId/subcategories')
   @ApiTags(ADMIN_SWAGGER_TAGS.categories)
-  @ApiOperation({ summary: 'Create subcategory inside a parent category (root -> A, A -> B)' })
-  @ApiParam({ name: 'parentId', type: Number, description: 'Parent category id' })
+  @ApiOperation({
+    summary: 'Create subcategory inside a parent category (root -> A, A -> B)',
+  })
+  @ApiParam({
+    name: 'parentId',
+    type: Number,
+    description: 'Parent category id',
+  })
   createSubcategory(
     @Param('parentId', ParseIntPipe) parentId: number,
     @Body() body: CreateAdminCategoryDto,
@@ -201,8 +227,14 @@ export class AdminController {
   @ApiTags(ADMIN_SWAGGER_TAGS.categories)
   @ApiOperation({ summary: 'Update category by id (admin)' })
   @ApiParam({ name: 'id', type: Number, description: 'Category id' })
-  patchCategory(@Param('id', ParseIntPipe) id: number, @Body() body: UpdateAdminCategoryDto) {
-    return this.adminService.patchAdminCategory(id, body as unknown as Record<string, unknown>);
+  patchCategory(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateAdminCategoryDto,
+  ) {
+    return this.adminService.patchAdminCategory(
+      id,
+      body as unknown as Record<string, unknown>,
+    );
   }
 
   @Delete('categories/:id')
@@ -224,15 +256,23 @@ export class AdminController {
   @ApiTags(ADMIN_SWAGGER_TAGS.brands)
   @ApiOperation({ summary: 'Create brand (admin)' })
   createBrand(@Body() body: CreateAdminBrandDto) {
-    return this.adminService.createAdminBrand(body as unknown as Record<string, unknown>);
+    return this.adminService.createAdminBrand(
+      body as unknown as Record<string, unknown>,
+    );
   }
 
   @Patch('brands/:id')
   @ApiTags(ADMIN_SWAGGER_TAGS.brands)
   @ApiOperation({ summary: 'Update brand by id (admin)' })
   @ApiParam({ name: 'id', type: Number, description: 'Brand id' })
-  patchBrand(@Param('id', ParseIntPipe) id: number, @Body() body: UpdateAdminBrandDto) {
-    return this.adminService.patchAdminBrand(id, body as unknown as Record<string, unknown>);
+  patchBrand(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateAdminBrandDto,
+  ) {
+    return this.adminService.patchAdminBrand(
+      id,
+      body as unknown as Record<string, unknown>,
+    );
   }
 
   @Delete('brands/:id')
@@ -262,8 +302,14 @@ export class AdminController {
   @ApiTags(ADMIN_SWAGGER_TAGS.orders)
   @ApiOperation({ summary: 'Update order by id (admin)' })
   @ApiParam({ name: 'id', type: Number, description: 'Order id' })
-  patchOrder(@Param('id', ParseIntPipe) id: number, @Body() body: UpdateAdminOrderDto) {
-    return this.adminService.patchAdminOrder(id, body as unknown as Record<string, unknown>);
+  patchOrder(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateAdminOrderDto,
+  ) {
+    return this.adminService.patchAdminOrder(
+      id,
+      body as unknown as Record<string, unknown>,
+    );
   }
 
   @Get('leads')
@@ -273,12 +319,25 @@ export class AdminController {
     return this.adminService.getAdminLeads();
   }
 
+  @Get('orderCalculation')
+  @ApiTags(ADMIN_SWAGGER_TAGS.leads)
+  @ApiOperation({ summary: 'List order calculation requests (admin)' })
+  getOrderCalculations() {
+    return this.adminService.getAdminOrderCalculations();
+  }
+
   @Patch('leads/:id')
   @ApiTags(ADMIN_SWAGGER_TAGS.leads)
   @ApiOperation({ summary: 'Update lead by id (admin)' })
   @ApiParam({ name: 'id', type: Number, description: 'Lead id' })
-  patchLead(@Param('id', ParseIntPipe) id: number, @Body() body: UpdateAdminLeadDto) {
-    return this.adminService.patchAdminLead(id, body as unknown as Record<string, unknown>);
+  patchLead(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateAdminLeadDto,
+  ) {
+    return this.adminService.patchAdminLead(
+      id,
+      body as unknown as Record<string, unknown>,
+    );
   }
 
   @Get('news')
@@ -292,15 +351,23 @@ export class AdminController {
   @ApiTags(ADMIN_SWAGGER_TAGS.news)
   @ApiOperation({ summary: 'Create news item (admin)' })
   createNews(@Body() body: CreateAdminNewsDto) {
-    return this.adminService.createAdminNews(body as unknown as Record<string, unknown>);
+    return this.adminService.createAdminNews(
+      body as unknown as Record<string, unknown>,
+    );
   }
 
   @Patch('news/:id')
   @ApiTags(ADMIN_SWAGGER_TAGS.news)
   @ApiOperation({ summary: 'Update news item by id (admin)' })
   @ApiParam({ name: 'id', type: Number, description: 'News id' })
-  patchNews(@Param('id', ParseIntPipe) id: number, @Body() body: UpdateAdminNewsDto) {
-    return this.adminService.patchAdminNews(id, body as unknown as Record<string, unknown>);
+  patchNews(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateAdminNewsDto,
+  ) {
+    return this.adminService.patchAdminNews(
+      id,
+      body as unknown as Record<string, unknown>,
+    );
   }
 
   @Delete('news/:id')
@@ -322,15 +389,23 @@ export class AdminController {
   @ApiTags(ADMIN_SWAGGER_TAGS.articles)
   @ApiOperation({ summary: 'Create article (admin)' })
   createArticle(@Body() body: CreateAdminArticleDto) {
-    return this.adminService.createAdminArticle(body as unknown as Record<string, unknown>);
+    return this.adminService.createAdminArticle(
+      body as unknown as Record<string, unknown>,
+    );
   }
 
   @Patch('articles/:id')
   @ApiTags(ADMIN_SWAGGER_TAGS.articles)
   @ApiOperation({ summary: 'Update article by id (admin)' })
   @ApiParam({ name: 'id', type: Number, description: 'Article id' })
-  patchArticle(@Param('id', ParseIntPipe) id: number, @Body() body: UpdateAdminArticleDto) {
-    return this.adminService.patchAdminArticle(id, body as unknown as Record<string, unknown>);
+  patchArticle(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateAdminArticleDto,
+  ) {
+    return this.adminService.patchAdminArticle(
+      id,
+      body as unknown as Record<string, unknown>,
+    );
   }
 
   @Delete('articles/:id')
@@ -352,15 +427,23 @@ export class AdminController {
   @ApiTags(ADMIN_SWAGGER_TAGS.projects)
   @ApiOperation({ summary: 'Create project with images and equipment (admin)' })
   createProject(@Body() body: CreateAdminProjectDto) {
-    return this.adminService.createAdminProject(body as unknown as Record<string, unknown>);
+    return this.adminService.createAdminProject(
+      body as unknown as Record<string, unknown>,
+    );
   }
 
   @Patch('projects/:id')
   @ApiTags(ADMIN_SWAGGER_TAGS.projects)
   @ApiOperation({ summary: 'Update project with images and equipment (admin)' })
   @ApiParam({ name: 'id', type: Number, description: 'Project id' })
-  patchProject(@Param('id', ParseIntPipe) id: number, @Body() body: UpdateAdminProjectDto) {
-    return this.adminService.patchAdminProject(id, body as unknown as Record<string, unknown>);
+  patchProject(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateAdminProjectDto,
+  ) {
+    return this.adminService.patchAdminProject(
+      id,
+      body as unknown as Record<string, unknown>,
+    );
   }
 
   @Delete('projects/:id')
@@ -382,15 +465,23 @@ export class AdminController {
   @ApiTags(ADMIN_SWAGGER_TAGS.pages)
   @ApiOperation({ summary: 'Create page (admin)' })
   createPage(@Body() body: CreateAdminPageDto) {
-    return this.adminService.createAdminPage(body as unknown as Record<string, unknown>);
+    return this.adminService.createAdminPage(
+      body as unknown as Record<string, unknown>,
+    );
   }
 
   @Patch('pages/:id')
   @ApiTags(ADMIN_SWAGGER_TAGS.pages)
   @ApiOperation({ summary: 'Update page by id (admin)' })
   @ApiParam({ name: 'id', type: Number, description: 'Page id' })
-  patchPage(@Param('id', ParseIntPipe) id: number, @Body() body: UpdateAdminPageDto) {
-    return this.adminService.patchAdminPage(id, body as unknown as Record<string, unknown>);
+  patchPage(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateAdminPageDto,
+  ) {
+    return this.adminService.patchAdminPage(
+      id,
+      body as unknown as Record<string, unknown>,
+    );
   }
 
   @Delete('pages/:id')
@@ -405,7 +496,10 @@ export class AdminController {
   @ApiTags(ADMIN_SWAGGER_TAGS.files)
   @ApiOperation({ summary: 'Get uploaded image by id' })
   @ApiParam({ name: 'id', type: String, description: 'File id' })
-  getFileById(@Param('id') id: string, @Res({ passthrough: false }) res: Response) {
+  getFileById(
+    @Param('id') id: string,
+    @Res({ passthrough: false }) res: Response,
+  ) {
     const file = this.adminService.getFileById(id);
     return res.sendFile(file.path);
   }
@@ -438,7 +532,10 @@ export class AdminController {
       },
       fileFilter: (_req, file, callback) => {
         if (!file.mimetype.startsWith('image/')) {
-          callback(new BadRequestException('Only image files are allowed'), false);
+          callback(
+            new BadRequestException('Only image files are allowed'),
+            false,
+          );
           return;
         }
         callback(null, true);
@@ -451,11 +548,10 @@ export class AdminController {
   @ApiOperation({ summary: 'Upload image file' })
   uploadFile(
     @UploadedFile(
-      new ParseFilePipeBuilder()
-        .build({
-          fileIsRequired: true,
-          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
-        }),
+      new ParseFilePipeBuilder().build({
+        fileIsRequired: true,
+        errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+      }),
     )
     file: unknown,
   ) {

@@ -31,9 +31,24 @@ type ImportJob = {
 };
 
 type ProductCategoryPayload = {
-  main: { id: number; name: string; imageUrl: string | null; description: string | null } | null;
-  subA: { id: number; name: string; imageUrl: string | null; description: string | null } | null;
-  subB: { id: number; name: string; imageUrl: string | null; description: string | null } | null;
+  main: {
+    id: number;
+    name: string;
+    imageUrl: string | null;
+    description: string | null;
+  } | null;
+  subA: {
+    id: number;
+    name: string;
+    imageUrl: string | null;
+    description: string | null;
+  } | null;
+  subB: {
+    id: number;
+    name: string;
+    imageUrl: string | null;
+    description: string | null;
+  } | null;
 };
 
 type ProductBrandPayload = {
@@ -65,7 +80,12 @@ export class AdminService {
     let candidate = baseSlug;
     let suffix = 2;
 
-    while (await prisma.category.findUnique({ where: { slug: candidate }, select: { id: true } })) {
+    while (
+      await prisma.category.findUnique({
+        where: { slug: candidate },
+        select: { id: true },
+      })
+    ) {
       candidate = `${baseSlug}-${suffix}`;
       suffix += 1;
     }
@@ -73,7 +93,10 @@ export class AdminService {
     return candidate;
   }
 
-  private async findOrCreateImportedCategory(name: string, parentId: number | null) {
+  private async findOrCreateImportedCategory(
+    name: string,
+    parentId: number | null,
+  ) {
     const existingCategory = await prisma.category.findFirst({
       where: { name, parentId },
       select: {
@@ -430,7 +453,9 @@ export class AdminService {
       const sortOrder =
         entry.sortOrder !== undefined ? Number(entry.sortOrder) : index;
       if (!Number.isFinite(sortOrder)) {
-        throw new BadRequestException(`img[${index}].sortOrder must be a number`);
+        throw new BadRequestException(
+          `img[${index}].sortOrder must be a number`,
+        );
       }
 
       return {
@@ -448,7 +473,9 @@ export class AdminService {
       return Prisma.JsonNull;
     }
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
-      throw new BadRequestException('\u0445\u0430\u0440\u0430\u043a\u0442\u0435\u0440\u0438\u0441\u0442\u0438\u043a\u0438 must be an object');
+      throw new BadRequestException(
+        '\u0445\u0430\u0440\u0430\u043a\u0442\u0435\u0440\u0438\u0441\u0442\u0438\u043a\u0438 must be an object',
+      );
     }
 
     const specifications = value as Record<string, unknown>;
@@ -461,7 +488,9 @@ export class AdminService {
 
     if (
       productType !== null &&
-      !PRODUCT_TYPE_OPTIONS.includes(productType as (typeof PRODUCT_TYPE_OPTIONS)[number])
+      !PRODUCT_TYPE_OPTIONS.includes(
+        productType as (typeof PRODUCT_TYPE_OPTIONS)[number],
+      )
     ) {
       throw new BadRequestException(
         `specifications.type must be one of: ${PRODUCT_TYPE_OPTIONS.join(', ')}`,
@@ -547,7 +576,9 @@ export class AdminService {
     fallbackCategoryId?: number,
   ) {
     const categories =
-      body.categories && typeof body.categories === 'object' && !Array.isArray(body.categories)
+      body.categories &&
+      typeof body.categories === 'object' &&
+      !Array.isArray(body.categories)
         ? (body.categories as Record<string, unknown>)
         : undefined;
 
@@ -564,7 +595,9 @@ export class AdminService {
 
       const categoryId = Number(idValue);
       if (!Number.isInteger(categoryId) || categoryId < 1) {
-        throw new BadRequestException('categories.*.id must be a positive integer');
+        throw new BadRequestException(
+          'categories.*.id must be a positive integer',
+        );
       }
 
       await this.getCategoryOrThrow(categoryId);
@@ -587,7 +620,9 @@ export class AdminService {
     throw new BadRequestException('categories.main/subA/subB.id is required');
   }
 
-  private async buildProductCategories(categoryId: number): Promise<ProductCategoryPayload> {
+  private async buildProductCategories(
+    categoryId: number,
+  ): Promise<ProductCategoryPayload> {
     const chain: Array<{
       id: number;
       name: string;
@@ -708,7 +743,9 @@ export class AdminService {
           ? product.brand
           : await this.getBrandOrThrow(product.brandId)
         : null;
-    const displayPrice = product.oldPrice ? String(product.oldPrice) : String(product.price);
+    const displayPrice = product.oldPrice
+      ? String(product.oldPrice)
+      : String(product.price);
     const discountedPrice = product.oldPrice ? String(product.price) : null;
     const characteristics =
       product.characteristics &&
@@ -727,7 +764,8 @@ export class AdminService {
           ? Number(characteristics.power)
           : null,
       luminous:
-        characteristics.luminous !== undefined && characteristics.luminous !== null
+        characteristics.luminous !== undefined &&
+        characteristics.luminous !== null
           ? Number(characteristics.luminous)
           : null,
       size:
@@ -735,31 +773,38 @@ export class AdminService {
           ? String(characteristics.size)
           : null,
       baseType:
-        characteristics.baseType !== undefined && characteristics.baseType !== null
+        characteristics.baseType !== undefined &&
+        characteristics.baseType !== null
           ? String(characteristics.baseType)
           : null,
       protectionDegree:
-        characteristics.protectionDegree !== undefined && characteristics.protectionDegree !== null
+        characteristics.protectionDegree !== undefined &&
+        characteristics.protectionDegree !== null
           ? String(characteristics.protectionDegree)
           : null,
       materials:
-        characteristics.materials !== undefined && characteristics.materials !== null
+        characteristics.materials !== undefined &&
+        characteristics.materials !== null
           ? String(characteristics.materials)
           : null,
       lightSourceType:
-        characteristics.lightSourceType !== undefined && characteristics.lightSourceType !== null
+        characteristics.lightSourceType !== undefined &&
+        characteristics.lightSourceType !== null
           ? String(characteristics.lightSourceType)
           : null,
       reflectorType:
-        characteristics.reflectorType !== undefined && characteristics.reflectorType !== null
+        characteristics.reflectorType !== undefined &&
+        characteristics.reflectorType !== null
           ? String(characteristics.reflectorType)
           : null,
       packaging:
-        characteristics.packaging !== undefined && characteristics.packaging !== null
+        characteristics.packaging !== undefined &&
+        characteristics.packaging !== null
           ? String(characteristics.packaging)
           : null,
       quantity:
-        characteristics.quantity !== undefined && characteristics.quantity !== null
+        characteristics.quantity !== undefined &&
+        characteristics.quantity !== null
           ? Number(characteristics.quantity)
           : null,
     };
@@ -794,7 +839,13 @@ export class AdminService {
       where: { id },
       include: {
         brand: {
-          select: { id: true, name: true, slug: true, imageUrl: true, description: true },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            imageUrl: true,
+            description: true,
+          },
         },
         images: {
           orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
@@ -954,7 +1005,9 @@ export class AdminService {
       },
     });
 
-    return Promise.all(products.map((product) => this.formatAdminProduct(product)));
+    return Promise.all(
+      products.map((product) => this.formatAdminProduct(product)),
+    );
   }
 
   async createAdminProduct(body: Record<string, unknown>) {
@@ -980,18 +1033,27 @@ export class AdminService {
     const basePrice = String(body.price);
     const hasDiscount = discount ? Boolean(discount.hasDiscount) : false;
 
-    if (hasDiscount && (discount?.new_price === undefined || discount.new_price === null)) {
-      throw new BadRequestException('discount.new_price is required when hasDiscount=true');
+    if (
+      hasDiscount &&
+      (discount?.new_price === undefined || discount.new_price === null)
+    ) {
+      throw new BadRequestException(
+        'discount.new_price is required when hasDiscount=true',
+      );
     }
 
     const created = await prisma.product.create({
       data: {
         sku:
-          body.sku !== undefined && body.sku !== null && String(body.sku).trim() !== ''
+          body.sku !== undefined &&
+          body.sku !== null &&
+          String(body.sku).trim() !== ''
             ? String(body.sku)
             : await this.generateUniqueProductSku(),
         slug:
-          body.slug !== undefined && body.slug !== null && String(body.slug).trim() !== ''
+          body.slug !== undefined &&
+          body.slug !== null &&
+          String(body.slug).trim() !== ''
             ? String(body.slug)
             : await this.generateUniqueProductSlug(title),
         name: title,
@@ -1013,7 +1075,8 @@ export class AdminService {
               ? Number(body.stockQty)
               : 0,
         isActive: body.isActive !== undefined ? Boolean(body.isActive) : true,
-        isFeatured: body.isFeatured !== undefined ? Boolean(body.isFeatured) : false,
+        isFeatured:
+          body.isFeatured !== undefined ? Boolean(body.isFeatured) : false,
         isNew: body.isNew !== undefined ? Boolean(body.isNew) : false,
         categoryId,
         brandId: await this.resolveProductBrand(body, null),
@@ -1021,7 +1084,13 @@ export class AdminService {
       },
       include: {
         brand: {
-          select: { id: true, name: true, slug: true, imageUrl: true, description: true },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            imageUrl: true,
+            description: true,
+          },
         },
         images: {
           orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
@@ -1064,7 +1133,9 @@ export class AdminService {
       const hasDiscount = Boolean(discount.hasDiscount);
       if (hasDiscount) {
         if (discount.new_price === undefined || discount.new_price === null) {
-          throw new BadRequestException('discount.new_price is required when hasDiscount=true');
+          throw new BadRequestException(
+            'discount.new_price is required when hasDiscount=true',
+          );
         }
         nextOldPrice =
           body.price !== undefined
@@ -1100,7 +1171,8 @@ export class AdminService {
             : undefined,
         characteristics: this.toProductCharacteristics(body.specifications),
         price: body.price !== undefined || discount ? nextPrice : undefined,
-        oldPrice: body.oldPrice !== undefined || discount ? nextOldPrice : undefined,
+        oldPrice:
+          body.oldPrice !== undefined || discount ? nextOldPrice : undefined,
         stockQty:
           body.inStock !== undefined
             ? Boolean(body.inStock)
@@ -1109,8 +1181,10 @@ export class AdminService {
             : body.stockQty !== undefined
               ? Number(body.stockQty)
               : undefined,
-        isActive: body.isActive !== undefined ? Boolean(body.isActive) : undefined,
-        isFeatured: body.isFeatured !== undefined ? Boolean(body.isFeatured) : undefined,
+        isActive:
+          body.isActive !== undefined ? Boolean(body.isActive) : undefined,
+        isFeatured:
+          body.isFeatured !== undefined ? Boolean(body.isFeatured) : undefined,
         isNew: body.isNew !== undefined ? Boolean(body.isNew) : undefined,
         categoryId:
           body.categories !== undefined || body.categoryId !== undefined
@@ -1127,7 +1201,13 @@ export class AdminService {
       },
       include: {
         brand: {
-          select: { id: true, name: true, slug: true, imageUrl: true, description: true },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            imageUrl: true,
+            description: true,
+          },
         },
         images: {
           orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
@@ -1228,10 +1308,21 @@ export class AdminService {
   }) {
     const categoriesToImport = body.categories ?? [body];
     if (categoriesToImport.length === 0) {
-      throw new BadRequestException('categories must contain at least one item');
+      throw new BadRequestException(
+        'categories must contain at least one item',
+      );
     }
 
     const importedMainCategories: Array<{
+      id: number;
+      name: string;
+      slug: string;
+      imageUrl: string | null;
+      description: string | null;
+      parentId: number | null;
+      sortOrder: number;
+      isActive: boolean;
+      subA: Array<{
         id: number;
         name: string;
         slug: string;
@@ -1240,7 +1331,7 @@ export class AdminService {
         parentId: number | null;
         sortOrder: number;
         isActive: boolean;
-        subA: Array<{
+        subB: Array<{
           id: number;
           name: string;
           slug: string;
@@ -1249,22 +1340,15 @@ export class AdminService {
           parentId: number | null;
           sortOrder: number;
           isActive: boolean;
-          subB: Array<{
-            id: number;
-            name: string;
-            slug: string;
-            imageUrl: string | null;
-            description: string | null;
-            parentId: number | null;
-            sortOrder: number;
-            isActive: boolean;
         }>;
       }>;
     }> = [];
 
     for (const categoryInput of categoriesToImport) {
       if (!categoryInput.main) {
-        throw new BadRequestException('main is required for each imported category');
+        throw new BadRequestException(
+          'main is required for each imported category',
+        );
       }
 
       const mainCategory = await this.findOrCreateImportedCategory(
@@ -1528,6 +1612,13 @@ export class AdminService {
 
   getAdminLeads() {
     return prisma.lead.findMany({ orderBy: { id: 'desc' } });
+  }
+
+  getAdminOrderCalculations() {
+    return prisma.lead.findMany({
+      where: { source: 'orderCalculation' },
+      orderBy: { id: 'desc' },
+    });
   }
 
   async patchAdminLead(id: number, body: Record<string, unknown>) {
@@ -1908,4 +1999,3 @@ export class AdminService {
     });
   }
 }
-
