@@ -1,6 +1,6 @@
 ﻿import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { OrderStatus, PublishStatus } from '@prisma/client';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
@@ -255,6 +255,9 @@ export class UpdateAdminProductDto extends PartialType(CreateAdminProductDto) {}
 export class ImportAdminProductDto {
   @ApiPropertyOptional({ example: '123' })
   @IsOptional()
+  @Transform(({ value }) =>
+    value === undefined || value === null ? value : String(value),
+  )
   @IsString()
   id?: string;
 
