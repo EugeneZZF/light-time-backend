@@ -16,6 +16,25 @@ import {
 } from 'class-validator';
 import { PRODUCT_TYPE_OPTIONS } from '../../../common/product-types';
 
+const toOptionalNumber = ({ value }: { value: unknown }) => {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+
+  if (typeof value === 'string') {
+    const normalizedValue = value.trim().replace(',', '.');
+
+    if (normalizedValue === '') {
+      return undefined;
+    }
+
+    const parsedValue = Number(normalizedValue);
+    return Number.isFinite(parsedValue) ? parsedValue : value;
+  }
+
+  return value;
+};
+
 export class AdminProductImageDto {
   @ApiProperty({ example: 'https://cdn.example.com/products/1/main.jpg' })
   @IsString()
@@ -108,14 +127,14 @@ export class AdminProductSpecificationsDto {
 
   @ApiPropertyOptional({ example: 12, nullable: true })
   @IsOptional()
+  @Transform(toOptionalNumber)
   @IsNumber()
-  @Type(() => Number)
   power?: number | null;
 
   @ApiPropertyOptional({ example: 960, nullable: true })
   @IsOptional()
+  @Transform(toOptionalNumber)
   @IsNumber()
-  @Type(() => Number)
   luminous?: number | null;
 
   @ApiPropertyOptional({ example: '1200x35x55', nullable: true })
