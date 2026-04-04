@@ -6,6 +6,7 @@ import {
   Get,
   HttpStatus,
   Param,
+  ParseArrayPipe,
   ParseIntPipe,
   Patch,
   Post,
@@ -49,8 +50,9 @@ import {
   CreateAdminArticleDto,
   CreateAdminBrandDto,
   CreateAdminCategoryDto,
+  ImportAdminCategoryNodeDto,
   ImportAdminCategoriesBatchDto,
-  ImportAdminCategoriesDto,
+  ImportAdminProductDto,
   CreateAdminNewsDto,
   CreateAdminPageDto,
   CreateAdminProductDto,
@@ -575,20 +577,35 @@ export class AdminController {
 
   @Post('import/categories')
   @ApiTags(ADMIN_SWAGGER_TAGS.imports)
-  @ApiOperation({ summary: 'Import categories tree: main -> subA[] -> subB[]' })
-  @ApiExtraModels(ImportAdminCategoriesDto, ImportAdminCategoriesBatchDto)
+  @ApiOperation({
+    summary: 'Import categories tree: root -> subcategoriesA[] -> subcategoriesB[]',
+  })
+  @ApiExtraModels(ImportAdminCategoryNodeDto, ImportAdminCategoriesBatchDto)
   @ApiBody({
     schema: {
       oneOf: [
-        { $ref: getSchemaPath(ImportAdminCategoriesDto) },
+        { $ref: getSchemaPath(ImportAdminCategoryNodeDto) },
         { $ref: getSchemaPath(ImportAdminCategoriesBatchDto) },
       ],
     },
   })
   importCategories(
-    @Body() body: ImportAdminCategoriesDto | ImportAdminCategoriesBatchDto,
+    @Body() body: ImportAdminCategoryNodeDto | ImportAdminCategoriesBatchDto,
   ) {
     return this.adminService.importAdminCategories(body);
+  }
+
+  @Post('import/products')
+  @ApiTags(ADMIN_SWAGGER_TAGS.imports)
+  @ApiOperation({ summary: 'Import products array' })
+  @ApiBody({ type: [ImportAdminProductDto] })
+  importProducts(
+    @Body(new ParseArrayPipe({ items: ImportAdminProductDto }))
+    body: ImportAdminProductDto[],
+  ) {
+    return this.adminService.importAdminProducts(
+      body as unknown as Record<string, unknown>[],
+    );
   }
 
   @Get('import/jobs/:id')

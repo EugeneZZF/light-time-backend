@@ -30,6 +30,30 @@ type ImportJob = {
   createdAt: string;
 };
 
+type ImportedCategoryNodeInput = {
+  id?: number;
+  name?: string;
+  slug?: string;
+  imageUrl?: string | null;
+  description?: string | null;
+  parentId?: number | null;
+  isActive?: boolean;
+  sortOrder?: number;
+  subcategoriesA?: ImportedCategoryNodeInput[];
+  subcategoriesB?: ImportedCategoryNodeInput[];
+};
+
+type ImportedCategoryRecord = {
+  id: number;
+  name: string;
+  slug: string;
+  imageUrl: string | null;
+  description: string | null;
+  parentId: number | null;
+  sortOrder: number;
+  isActive: boolean;
+};
+
 type ProductCategoryPayload = {
   main: {
     id: number;
@@ -64,72 +88,88 @@ export class AdminService {
   private readonly importJobs = new Map<string, ImportJob>();
   constructor(private readonly jwtService: JwtService) {}
 
-  private slugifyCategoryName(value: string) {
-    const slug = value
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .replace(/-{2,}/g, '-');
-
-    return slug || 'category';
-  }
-
-  private async generateUniqueCategorySlug(name: string) {
-    const baseSlug = this.slugifyCategoryName(name);
-    let candidate = baseSlug;
-    let suffix = 2;
-
-    while (
-      await prisma.category.findUnique({
-        where: { slug: candidate },
-        select: { id: true },
-      })
-    ) {
-      candidate = `${baseSlug}-${suffix}`;
-      suffix += 1;
-    }
-
-    return candidate;
-  }
-
-  private async findOrCreateImportedCategory(
-    name: string,
+  private async upsertImportedCategoryNode(
+    input: ImportedCategoryNodeInput,
     parentId: number | null,
-  ) {
-    const existingCategory = await prisma.category.findFirst({
-      where: { name, parentId },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        imageUrl: true,
-        description: true,
-        parentId: true,
-        sortOrder: true,
-        isActive: true,
-      },
-    });
-
-    if (existingCategory) {
-      return existingCategory;
+  ): Promise<ImportedCategoryRecord> {
+    if (!input.name?.trim()) {
+      throw new BadRequestException('Category name is required');
     }
 
-    const slug = await this.generateUniqueCategorySlug(name);
-    const sibling = await prisma.category.findFirst({
-      where: { parentId },
-      orderBy: [{ sortOrder: 'desc' }, { id: 'desc' }],
-      select: { sortOrder: true },
+    if (!input.slug?.trim()) {
+      throw new BadRequestException('Category slug is required');
+    }
+
+    if (input.parentId !== undefined && input.parentId !== parentId) {
+      throw new BadRequestException(
+        `Invalid parentId for category "${input.name}"`,
+      );
+    }
+
+    const data = {
+      name: input.name.trim(),
+      slug: input.slug.trim(),
+      imageUrl: input.imageUrl ?? null,
+      description: input.description ?? null,
+      parentId,
+      sortOrder: input.sortOrder ?? 0,
+      isActive: input.isActive ?? true,
+    };
+
+    if (input.id !== undefined) {
+      const existingById = await prisma.category.findUnique({
+        where: { id: input.id },
+        select: { id: true },
+      });
+
+      if (existingById) {
+        await this.validateCategoryParent(parentId, existingById.id);
+
+        return prisma.category.update({
+          where: { id: input.id },
+          data,
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            imageUrl: true,
+            description: true,
+            parentId: true,
+            sortOrder: true,
+            isActive: true,
+          },
+        });
+      }
+    }
+
+    const existingBySlug = await prisma.category.findUnique({
+      where: { slug: data.slug },
+      select: { id: true },
     });
+
+    if (existingBySlug) {
+      await this.validateCategoryParent(parentId, existingBySlug.id);
+
+      return prisma.category.update({
+        where: { id: existingBySlug.id },
+        data,
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          imageUrl: true,
+          description: true,
+          parentId: true,
+          sortOrder: true,
+          isActive: true,
+        },
+      });
+    }
+
+    await this.validateCategoryParent(parentId);
 
     return prisma.category.create({
-      data: {
-        name,
-        slug,
-        parentId,
-        sortOrder: (sibling?.sortOrder ?? -1) + 1,
-        isActive: true,
-      },
+      data,
       select: {
         id: true,
         name: true,
@@ -712,6 +752,110 @@ export class AdminService {
     return fallbackBrandId;
   }
 
+  private parseImportedNumericId(value: unknown, fieldName: string) {
+    if (value === undefined || value === null || value === '') {
+      return undefined;
+    }
+
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed) || parsed < 1) {
+      throw new BadRequestException(`${fieldName} must be a positive integer`);
+    }
+
+    return parsed;
+  }
+
+  private async upsertImportedBrand(
+    brandInput: Record<string, unknown> | null | undefined,
+  ): Promise<number | null> {
+    if (brandInput === undefined) {
+      return null;
+    }
+
+    if (brandInput === null) {
+      return null;
+    }
+
+    const id = this.parseImportedNumericId(brandInput.id, 'brand.id');
+    const name =
+      brandInput.name !== undefined && brandInput.name !== null
+        ? String(brandInput.name).trim()
+        : '';
+    const slug =
+      brandInput.slug !== undefined && brandInput.slug !== null
+        ? String(brandInput.slug).trim()
+        : '';
+
+    if (!name) {
+      throw new BadRequestException('brand.name is required');
+    }
+
+    if (!slug) {
+      throw new BadRequestException('brand.slug is required');
+    }
+
+    const data = {
+      name,
+      slug,
+      imageUrl:
+        brandInput.imageUrl !== undefined
+          ? brandInput.imageUrl === null
+            ? null
+            : String(brandInput.imageUrl)
+          : null,
+      description:
+        brandInput.description !== undefined
+          ? brandInput.description === null
+            ? null
+            : String(brandInput.description)
+          : null,
+      isActive:
+        brandInput.isActive !== undefined
+          ? Boolean(brandInput.isActive)
+          : true,
+    };
+
+    if (id !== undefined) {
+      const existingById = await prisma.brand.findUnique({
+        where: { id },
+        select: { id: true },
+      });
+
+      if (existingById) {
+        const updated = await prisma.brand.update({
+          where: { id },
+          data,
+          select: { id: true },
+        });
+        return updated.id;
+      }
+    }
+
+    const existingBySlug = await prisma.brand.findUnique({
+      where: { slug },
+      select: { id: true },
+    });
+
+    if (existingBySlug) {
+      const updated = await prisma.brand.update({
+        where: { id: existingBySlug.id },
+        data,
+        select: { id: true },
+      });
+      return updated.id;
+    }
+
+    const created = await prisma.brand.create({
+      data: {
+        ...(id !== undefined ? { id } : {}),
+        ...data,
+      },
+      select: { id: true },
+    });
+
+    return created.id;
+  }
+
   private async formatAdminProduct(product: {
     id: number;
     sku: string;
@@ -1232,6 +1376,191 @@ export class AdminService {
     return { success: true };
   }
 
+  async importAdminProducts(items: Record<string, unknown>[]) {
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new BadRequestException('Body must be a non-empty array of products');
+    }
+
+    const importedProducts = [];
+
+    for (const item of items) {
+      const title =
+        item.title !== undefined
+          ? String(item.title).trim()
+          : item.name !== undefined
+            ? String(item.name).trim()
+            : '';
+      const slug =
+        item.slug !== undefined && item.slug !== null
+          ? String(item.slug).trim()
+          : '';
+      const sku =
+        item.sku !== undefined && item.sku !== null
+          ? String(item.sku).trim()
+          : '';
+
+      if (!title || !slug || !sku || item.price === undefined) {
+        throw new BadRequestException(
+          'Each product must include title, slug, sku and price',
+        );
+      }
+
+      const categoryId = await this.resolveProductCategoryId(item);
+      const brand =
+        item.brand !== undefined &&
+        item.brand !== null &&
+        typeof item.brand === 'object' &&
+        !Array.isArray(item.brand)
+          ? (item.brand as Record<string, unknown>)
+          : item.brand === null
+            ? null
+            : undefined;
+      const brandId =
+        brand !== undefined
+          ? await this.upsertImportedBrand(brand)
+          : await this.resolveProductBrand(item, null);
+
+      const discount =
+        item.discount &&
+        typeof item.discount === 'object' &&
+        !Array.isArray(item.discount)
+          ? (item.discount as Record<string, unknown>)
+          : undefined;
+      const images = this.toProductImages(item.img ?? item.images);
+      const hasDiscount = discount ? Boolean(discount.hasDiscount) : false;
+      const basePrice = String(item.price);
+
+      if (
+        hasDiscount &&
+        (discount?.new_price === undefined || discount.new_price === null)
+      ) {
+        throw new BadRequestException(
+          'discount.new_price is required when hasDiscount=true',
+        );
+      }
+
+      const productData = {
+        sku,
+        slug,
+        name: title,
+        description:
+          item.description !== undefined
+            ? item.description === null
+              ? null
+              : String(item.description)
+            : null,
+        characteristics: this.toProductCharacteristics(item.specifications),
+        price: hasDiscount ? String(discount?.new_price) : basePrice,
+        oldPrice: hasDiscount ? basePrice : null,
+        stockQty: Boolean(item.inStock) ? 1 : 0,
+        isActive: item.isActive !== undefined ? Boolean(item.isActive) : true,
+        isFeatured:
+          item.isFeatured !== undefined ? Boolean(item.isFeatured) : false,
+        isNew: item.isNew !== undefined ? Boolean(item.isNew) : false,
+        categoryId,
+        brandId,
+        createdAt:
+          item.createdAt !== undefined && item.createdAt !== null
+            ? new Date(String(item.createdAt))
+            : undefined,
+        updatedAt:
+          item.updatedAt !== undefined && item.updatedAt !== null
+            ? new Date(String(item.updatedAt))
+            : undefined,
+      };
+
+      const importedId = this.parseImportedNumericId(item.id, 'id');
+
+      let existingProduct:
+        | {
+            id: number;
+            brandId: number | null;
+          }
+        | null = null;
+
+      if (importedId !== undefined) {
+        existingProduct = await prisma.product.findUnique({
+          where: { id: importedId },
+          select: { id: true, brandId: true },
+        });
+      }
+
+      if (!existingProduct) {
+        existingProduct = await prisma.product.findUnique({
+          where: { slug },
+          select: { id: true, brandId: true },
+        });
+      }
+
+      if (!existingProduct) {
+        existingProduct = await prisma.product.findUnique({
+          where: { sku },
+          select: { id: true, brandId: true },
+        });
+      }
+
+      const saved = existingProduct
+        ? await prisma.product.update({
+            where: { id: existingProduct.id },
+            data: {
+              ...productData,
+              images:
+                images !== undefined
+                  ? {
+                      deleteMany: {},
+                      create: images,
+                    }
+                  : undefined,
+            },
+            include: {
+              brand: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                  imageUrl: true,
+                  description: true,
+                },
+              },
+              images: {
+                orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+                select: { id: true, url: true, sortOrder: true },
+              },
+            },
+          })
+        : await prisma.product.create({
+            data: {
+              ...(importedId !== undefined ? { id: importedId } : {}),
+              ...productData,
+              images: images !== undefined ? { create: images } : undefined,
+            },
+            include: {
+              brand: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                  imageUrl: true,
+                  description: true,
+                },
+              },
+              images: {
+                orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+                select: { id: true, url: true, sortOrder: true },
+              },
+            },
+          });
+
+      importedProducts.push(await this.formatAdminProduct(saved));
+    }
+
+    return {
+      success: true,
+      count: importedProducts.length,
+      products: importedProducts,
+    };
+  }
+
   getAdminCategories() {
     return prisma.category.findMany({
       orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
@@ -1298,135 +1627,85 @@ export class AdminService {
     });
   }
 
-  async importAdminCategories(body: {
-    main?: string;
-    subA?: Array<{ name: string; subB?: string[] }>;
-    categories?: Array<{
-      main: string;
-      subA?: Array<{ name: string; subB?: string[] }>;
-    }>;
-  }) {
-    const categoriesToImport = body.categories ?? [body];
+  async importAdminCategories(
+    body: ImportedCategoryNodeInput & {
+      categories?: ImportedCategoryNodeInput[];
+    },
+  ) {
+    const categoriesToImport = Array.isArray(body.categories)
+      ? body.categories
+      : [body];
     if (categoriesToImport.length === 0) {
       throw new BadRequestException(
         'categories must contain at least one item',
       );
     }
 
-    const importedMainCategories: Array<{
-      id: number;
-      name: string;
-      slug: string;
-      imageUrl: string | null;
-      description: string | null;
-      parentId: number | null;
-      sortOrder: number;
-      isActive: boolean;
-      subA: Array<{
-        id: number;
-        name: string;
-        slug: string;
-        imageUrl: string | null;
-        description: string | null;
-        parentId: number | null;
-        sortOrder: number;
-        isActive: boolean;
-        subB: Array<{
-          id: number;
-          name: string;
-          slug: string;
-          imageUrl: string | null;
-          description: string | null;
-          parentId: number | null;
-          sortOrder: number;
-          isActive: boolean;
-        }>;
-      }>;
-    }> = [];
-
-    for (const categoryInput of categoriesToImport) {
-      if (!categoryInput.main) {
+    const importNode = async (
+      node: ImportedCategoryNodeInput,
+      parentId: number | null,
+      level: 0 | 1 | 2,
+    ): Promise<any> => {
+      if (level === 0 && (node.subcategoriesB?.length ?? 0) > 0) {
         throw new BadRequestException(
-          'main is required for each imported category',
+          'subcategoriesB is allowed only for subcategory A items',
         );
       }
 
-      const mainCategory = await this.findOrCreateImportedCategory(
-        categoryInput.main,
-        null,
-      );
-      const importedSubA: Array<{
-        id: number;
-        name: string;
-        slug: string;
-        imageUrl: string | null;
-        description: string | null;
-        parentId: number | null;
-        sortOrder: number;
-        isActive: boolean;
-        subB: Array<{
-          id: number;
-          name: string;
-          slug: string;
-          imageUrl: string | null;
-          description: string | null;
-          parentId: number | null;
-          sortOrder: number;
-          isActive: boolean;
-        }>;
-      }> = [];
-
-      for (const subAItem of categoryInput.subA ?? []) {
-        if (!subAItem?.name) {
-          throw new BadRequestException('Each subA item must have a name');
-        }
-
-        const subACategory = await this.findOrCreateImportedCategory(
-          subAItem.name,
-          mainCategory.id,
+      if (level === 1 && (node.subcategoriesA?.length ?? 0) > 0) {
+        throw new BadRequestException(
+          'subcategoriesA is allowed only for root categories',
         );
-
-        const importedSubB: Array<{
-          id: number;
-          name: string;
-          slug: string;
-          imageUrl: string | null;
-          description: string | null;
-          parentId: number | null;
-          sortOrder: number;
-          isActive: boolean;
-        }> = [];
-
-        for (const subBName of subAItem.subB ?? []) {
-          if (!subBName) {
-            throw new BadRequestException(
-              'subB values must be non-empty strings',
-            );
-          }
-
-          const subBCategory = await this.findOrCreateImportedCategory(
-            subBName,
-            subACategory.id,
-          );
-          importedSubB.push(subBCategory);
-        }
-
-        importedSubA.push({
-          ...subACategory,
-          subB: importedSubB,
-        });
       }
 
-      importedMainCategories.push({
-        ...mainCategory,
-        subA: importedSubA,
-      });
+      const saved = await this.upsertImportedCategoryNode(node, parentId);
+
+      if (level === 0) {
+        return {
+          ...saved,
+          subcategoriesA: await Promise.all(
+            (node.subcategoriesA ?? []).map((child) =>
+              importNode(child, saved.id, 1),
+            ),
+          ),
+        };
+      }
+
+      if (level === 1) {
+        return {
+          ...saved,
+          subcategoriesB: await Promise.all(
+            (node.subcategoriesB ?? []).map((child) =>
+              importNode(child, saved.id, 2),
+            ),
+          ),
+        };
+      }
+
+      if ((node.subcategoriesA?.length ?? 0) > 0) {
+        throw new BadRequestException(
+          'subcategoriesA is allowed only for root categories',
+        );
+      }
+
+      if ((node.subcategoriesB?.length ?? 0) > 0) {
+        throw new BadRequestException(
+          'subcategoriesB is allowed only for subcategory A items',
+        );
+      }
+
+      return saved;
+    };
+
+    const importedCategories: any[] = [];
+    for (const categoryInput of categoriesToImport) {
+      importedCategories.push(await importNode(categoryInput, null, 0));
     }
 
     return {
       success: true,
-      categories: importedMainCategories,
-      count: importedMainCategories.length,
+      categories: importedCategories,
+      count: importedCategories.length,
     };
   }
 

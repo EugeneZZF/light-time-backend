@@ -252,6 +252,90 @@ export class CreateAdminProductDto {
 
 export class UpdateAdminProductDto extends PartialType(CreateAdminProductDto) {}
 
+export class ImportAdminProductDto {
+  @ApiPropertyOptional({ example: '123' })
+  @IsOptional()
+  @IsString()
+  id?: string;
+
+  @ApiProperty({ example: 'SKU-001' })
+  @IsString()
+  sku!: string;
+
+  @ApiProperty({ example: 'track-svetilnik-sigma-12w' })
+  @IsString()
+  slug!: string;
+
+  @ApiProperty({ example: 'Трековый светильник Sigma 12W' })
+  @IsString()
+  title!: string;
+
+  @ApiProperty({ example: '12990.00' })
+  @IsString()
+  price!: string;
+
+  @ApiProperty({ example: true })
+  @IsBoolean()
+  inStock!: boolean;
+
+  @ApiPropertyOptional({ example: 'Описание товара', nullable: true })
+  @IsOptional()
+  @IsString()
+  description?: string | null;
+
+  @ApiPropertyOptional({ type: AdminProductBrandRefDto, nullable: true })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => AdminProductBrandRefDto)
+  brand?: AdminProductBrandRefDto | null;
+
+  @ApiPropertyOptional({ type: [AdminProductImageDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AdminProductImageDto)
+  img?: AdminProductImageDto[];
+
+  @ApiPropertyOptional({ type: AdminProductSpecificationsDto })
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => AdminProductSpecificationsDto)
+  specifications?: AdminProductSpecificationsDto;
+
+  @ApiPropertyOptional({ type: AdminProductDiscountDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => AdminProductDiscountDto)
+  discount?: AdminProductDiscountDto;
+
+  @ApiProperty({ type: AdminProductCategoriesDto })
+  @ValidateNested()
+  @Type(() => AdminProductCategoriesDto)
+  categories!: AdminProductCategoriesDto;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @ApiPropertyOptional({
+    example: '2026-04-04T12:00:00.000Z',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsDateString()
+  createdAt?: string;
+
+  @ApiPropertyOptional({
+    example: '2026-04-04T12:00:00.000Z',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsDateString()
+  updatedAt?: string;
+}
+
 export class CreateAdminCategoryDto {
   @ApiProperty({ example: 'РўСЂРµРєРѕРІС‹Рµ СЃРёСЃС‚РµРјС‹' })
   @IsString()
@@ -292,35 +376,70 @@ export class CreateAdminCategoryDto {
 
 export class UpdateAdminCategoryDto extends PartialType(CreateAdminCategoryDto) {}
 
-export class ImportAdminCategorySubADto {
-  @ApiProperty({ example: 'subA_name' })
+export class ImportAdminCategoryNodeDto {
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  id?: number;
+
+  @ApiProperty({ example: 'Внутреннее освещение' })
   @IsString()
   name!: string;
 
-  @ApiPropertyOptional({ example: ['sub-b-1', 'sub-b-2'], type: [String] })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  subB?: string[];
-}
-
-export class ImportAdminCategoriesDto {
-  @ApiProperty({ example: 'main_name' })
+  @ApiProperty({ example: 'vnutrennee-osveschenie' })
   @IsString()
-  main!: string;
+  slug!: string;
 
-  @ApiPropertyOptional({ type: [ImportAdminCategorySubADto] })
+  @ApiPropertyOptional({
+    example: '/uploads/vnutrennee-osveschenie.jpg',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsString()
+  imageUrl?: string | null;
+
+  @ApiPropertyOptional({ example: 'Описание категории', nullable: true })
+  @IsOptional()
+  @IsString()
+  description?: string | null;
+
+  @ApiPropertyOptional({ example: null, nullable: true })
+  @IsOptional()
+  @IsInt()
+  parentId?: number | null;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @IsInt()
+  sortOrder?: number;
+
+  @ApiPropertyOptional({ type: () => [ImportAdminCategoryNodeDto] })
   @IsOptional()
   @IsArray()
-  @Type(() => ImportAdminCategorySubADto)
-  subA?: ImportAdminCategorySubADto[];
+  @ValidateNested({ each: true })
+  @Type(() => ImportAdminCategoryNodeDto)
+  subcategoriesA?: ImportAdminCategoryNodeDto[];
+
+  @ApiPropertyOptional({ type: () => [ImportAdminCategoryNodeDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ImportAdminCategoryNodeDto)
+  subcategoriesB?: ImportAdminCategoryNodeDto[];
 }
 
 export class ImportAdminCategoriesBatchDto {
-  @ApiProperty({ type: [ImportAdminCategoriesDto] })
+  @ApiProperty({ type: [ImportAdminCategoryNodeDto] })
   @IsArray()
-  @Type(() => ImportAdminCategoriesDto)
-  categories!: ImportAdminCategoriesDto[];
+  @ValidateNested({ each: true })
+  @Type(() => ImportAdminCategoryNodeDto)
+  categories!: ImportAdminCategoryNodeDto[];
 }
 
 export class CreateAdminBrandDto {
