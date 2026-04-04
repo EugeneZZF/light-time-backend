@@ -100,12 +100,6 @@ export class AdminService {
       throw new BadRequestException('Category slug is required');
     }
 
-    if (input.parentId !== undefined && input.parentId !== parentId) {
-      throw new BadRequestException(
-        `Invalid parentId for category "${input.name}"`,
-      );
-    }
-
     const data = {
       name: input.name.trim(),
       slug: input.slug.trim(),
