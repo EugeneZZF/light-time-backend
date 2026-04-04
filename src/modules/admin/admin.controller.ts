@@ -586,11 +586,19 @@ export class AdminController {
       oneOf: [
         { $ref: getSchemaPath(ImportAdminCategoryNodeDto) },
         { $ref: getSchemaPath(ImportAdminCategoriesBatchDto) },
+        {
+          type: 'array',
+          items: { $ref: getSchemaPath(ImportAdminCategoryNodeDto) },
+        },
       ],
     },
   })
   importCategories(
-    @Body() body: ImportAdminCategoryNodeDto | ImportAdminCategoriesBatchDto,
+    @Body()
+    body:
+      | ImportAdminCategoryNodeDto
+      | ImportAdminCategoriesBatchDto
+      | ImportAdminCategoryNodeDto[],
   ) {
     return this.adminService.importAdminCategories(body);
   }

@@ -1624,13 +1624,19 @@ export class AdminService {
   }
 
   async importAdminCategories(
-    body: ImportedCategoryNodeInput & {
-      categories?: ImportedCategoryNodeInput[];
-    },
+    body:
+      | ImportedCategoryNodeInput
+      | ImportedCategoryNodeInput[]
+      | (ImportedCategoryNodeInput & {
+          categories?: ImportedCategoryNodeInput[];
+        }),
   ) {
-    const categoriesToImport = Array.isArray(body.categories)
-      ? body.categories
-      : [body];
+    const batchBody = !Array.isArray(body) ? ('categories' in body ? body : null) : null;
+    const categoriesToImport = Array.isArray(body)
+      ? body
+      : Array.isArray(batchBody?.categories)
+        ? batchBody.categories
+        : [body];
     if (categoriesToImport.length === 0) {
       throw new BadRequestException(
         'categories must contain at least one item',
