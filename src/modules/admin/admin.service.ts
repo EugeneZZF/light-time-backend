@@ -1381,7 +1381,9 @@ export class AdminService {
       throw new BadRequestException('Body must be a non-empty array of products');
     }
 
-    const importedProducts = [];
+    const importedProducts: Awaited<
+      ReturnType<AdminService['formatAdminProduct']>
+    >[] = [];
 
     for (const item of items) {
       const title =
