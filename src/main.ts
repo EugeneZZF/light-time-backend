@@ -15,6 +15,7 @@ import { ProjectsModule } from './modules/projects/projects.module';
 import { SearchModule } from './modules/search/search.module';
 import { FilesModule } from './modules/files/files.module';
 import { ensureUploadsDir, UPLOADS_DIR } from './modules/admin/admin-files';
+import * as bodyParser from 'body-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -24,6 +25,8 @@ async function bootstrap() {
     origin: ['http://localhost:3000'],
     credentials: true,
   });
+  app.use(bodyParser.json({ limit: '50mb' }));
+  app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
   app.useStaticAssets(UPLOADS_DIR, {
     prefix: '/uploads/',
@@ -44,20 +47,24 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
 
-  const publicDocument = SwaggerModule.createDocument(app, publicSwaggerConfig, {
-    include: [
-      HealthModule,
-      CatalogModule,
-      SearchModule,
-      CartModule,
-      OrdersModule,
-      LeadsModule,
-      ArticlesModule,
-      NewsModule,
-      ProjectsModule,
-      FilesModule,
-    ],
-  });
+  const publicDocument = SwaggerModule.createDocument(
+    app,
+    publicSwaggerConfig,
+    {
+      include: [
+        HealthModule,
+        CatalogModule,
+        SearchModule,
+        CartModule,
+        OrdersModule,
+        LeadsModule,
+        ArticlesModule,
+        NewsModule,
+        ProjectsModule,
+        FilesModule,
+      ],
+    },
+  );
   SwaggerModule.setup('docs', app, publicDocument, {
     swaggerOptions: {
       persistAuthorization: true,
@@ -69,14 +76,26 @@ async function bootstrap() {
     .setDescription('Interactive API documentation for admin panel endpoints')
     .setVersion('1.0.0')
     .addTag('Admin Auth', 'Authentication endpoints for the admin panel')
-    .addTag('Admin Products', 'Product management endpoints for the admin panel')
-    .addTag('Admin Categories', 'Category management endpoints for the admin panel')
+    .addTag(
+      'Admin Products',
+      'Product management endpoints for the admin panel',
+    )
+    .addTag(
+      'Admin Categories',
+      'Category management endpoints for the admin panel',
+    )
     .addTag('Admin Brands', 'Brand management endpoints for the admin panel')
     .addTag('Admin Orders', 'Order management endpoints for the admin panel')
     .addTag('Admin Leads', 'Lead management endpoints for the admin panel')
     .addTag('Admin News', 'News management endpoints for the admin panel')
-    .addTag('Admin Articles', 'Article management endpoints for the admin panel')
-    .addTag('Admin Projects', 'Project management endpoints for the admin panel')
+    .addTag(
+      'Admin Articles',
+      'Article management endpoints for the admin panel',
+    )
+    .addTag(
+      'Admin Projects',
+      'Project management endpoints for the admin panel',
+    )
     .addTag('Admin Pages', 'Page management endpoints for the admin panel')
     .addTag('Admin Files', 'File management endpoints for the admin panel')
     .addTag('Admin Imports', 'Import endpoints for the admin panel')
