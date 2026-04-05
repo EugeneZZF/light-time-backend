@@ -383,16 +383,13 @@ export class AdminService {
         );
       }
 
-      let price: string | undefined;
-      if (entry.price !== undefined && entry.price !== null) {
-        const priceNumber = Number(entry.price);
-        if (!Number.isFinite(priceNumber)) {
-          throw new BadRequestException(
-            `equipment[${index}].price must be a number`,
-          );
-        }
-        price = String(entry.price);
-      }
+      const price =
+        entry.price !== undefined && entry.price !== null
+          ? this.normalizeDecimalString(
+              entry.price,
+              `equipment[${index}].price`,
+            )
+          : undefined;
 
       return {
         name: String(entry.name),
@@ -429,6 +426,29 @@ export class AdminService {
       .replace(/-{2,}/g, '-');
 
     return slug || 'product';
+  }
+
+  private normalizeDecimalString(value: unknown, fieldName: string): string {
+    if (value === undefined || value === null) {
+      throw new BadRequestException(`${fieldName} is required`);
+    }
+
+    if (typeof value === 'number') {
+      if (!Number.isFinite(value)) {
+        throw new BadRequestException(`${fieldName} must be a number`);
+      }
+      return String(value);
+    }
+
+    const raw = String(value).trim();
+    const compact = raw.replace(/[\s\u00A0]+/g, '');
+    const normalized = compact.replace(',', '.');
+
+    if (!/^-?\d+(?:\.\d+)?$/.test(normalized)) {
+      throw new BadRequestException(`${fieldName} must be a valid decimal`);
+    }
+
+    return normalized;
   }
 
   private async generateUniqueProductSlug(title: string) {
@@ -1168,7 +1188,7 @@ export class AdminService {
         ? (body.discount as Record<string, unknown>)
         : undefined;
     const images = this.toProductImages(body.img ?? body.images);
-    const basePrice = String(body.price);
+    const basePrice = this.normalizeDecimalString(body.price, 'price');
     const hasDiscount = discount ? Boolean(discount.hasDiscount) : false;
 
     if (
@@ -1202,7 +1222,9 @@ export class AdminService {
               : String(body.description)
             : null,
         characteristics: this.toProductCharacteristics(body.specifications),
-        price: hasDiscount ? String(discount?.new_price) : basePrice,
+        price: hasDiscount
+          ? this.normalizeDecimalString(discount?.new_price, 'discount.new_price')
+          : basePrice,
         oldPrice: hasDiscount ? basePrice : null,
         stockQty:
           body.inStock !== undefined
@@ -1257,12 +1279,14 @@ export class AdminService {
     const images = this.toProductImages(body.img ?? body.images);
 
     let nextPrice =
-      body.price !== undefined ? String(body.price) : String(existing.price);
+      body.price !== undefined
+        ? this.normalizeDecimalString(body.price, 'price')
+        : String(existing.price);
     let nextOldPrice =
       body.oldPrice !== undefined
         ? body.oldPrice === null
           ? null
-          : String(body.oldPrice)
+          : this.normalizeDecimalString(body.oldPrice, 'oldPrice')
         : existing.oldPrice !== null
           ? String(existing.oldPrice)
           : null;
@@ -1277,11 +1301,14 @@ export class AdminService {
         }
         nextOldPrice =
           body.price !== undefined
-            ? String(body.price)
+            ? this.normalizeDecimalString(body.price, 'price')
             : existing.oldPrice !== null
               ? String(existing.oldPrice)
               : String(existing.price);
-        nextPrice = String(discount.new_price);
+        nextPrice = this.normalizeDecimalString(
+          discount.new_price,
+          'discount.new_price',
+        );
       } else {
         nextOldPrice = null;
         if (body.price === undefined && existing.oldPrice !== null) {
@@ -1424,7 +1451,7 @@ export class AdminService {
           : undefined;
       const images = this.toProductImages(item.img ?? item.images);
       const hasDiscount = discount ? Boolean(discount.hasDiscount) : false;
-      const basePrice = String(item.price);
+      const basePrice = this.normalizeDecimalString(item.price, 'price');
 
       if (
         hasDiscount &&
@@ -1446,7 +1473,9 @@ export class AdminService {
               : String(item.description)
             : null,
         characteristics: this.toProductCharacteristics(item.specifications),
-        price: hasDiscount ? String(discount?.new_price) : basePrice,
+        price: hasDiscount
+          ? this.normalizeDecimalString(discount?.new_price, 'discount.new_price')
+          : basePrice,
         oldPrice: hasDiscount ? basePrice : null,
         stockQty: Boolean(item.inStock) ? 1 : 0,
         isActive: item.isActive !== undefined ? Boolean(item.isActive) : true,
