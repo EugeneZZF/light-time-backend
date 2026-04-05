@@ -63,10 +63,19 @@ export class AdminProductCategoryRefDto {
   @IsString()
   name!: string;
 
+  @ApiPropertyOptional({
+    example: 'trekovye-sistemy',
+    description: 'Preferred category identifier for product payloads',
+  })
+  @IsOptional()
+  @IsString()
+  slug?: string;
+
   @ApiProperty({ example: 3 })
+  @IsOptional()
   @IsInt()
   @Min(1)
-  id!: number;
+  id?: number;
 }
 
 export class AdminProductCategoriesDto {

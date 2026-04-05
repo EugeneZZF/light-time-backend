@@ -58,18 +58,21 @@ type ProductCategoryPayload = {
   main: {
     id: number;
     name: string;
+    slug: string;
     imageUrl: string | null;
     description: string | null;
   } | null;
   subA: {
     id: number;
     name: string;
+    slug: string;
     imageUrl: string | null;
     description: string | null;
   } | null;
   subB: {
     id: number;
     name: string;
+    slug: string;
     imageUrl: string | null;
     description: string | null;
   } | null;
@@ -194,6 +197,37 @@ export class AdminService {
 
     if (!category) {
       throw new NotFoundException('Category not found');
+    }
+
+    return category;
+  }
+
+  private async getCategoryBySlugOrThrow(
+    slug: string,
+    displayName?: string,
+  ) {
+    const normalizedSlug = slug.trim();
+    const category = await prisma.category.findUnique({
+      where: { slug: normalizedSlug },
+      select: {
+        id: true,
+        parentId: true,
+        name: true,
+        slug: true,
+        imageUrl: true,
+        description: true,
+        isActive: true,
+        sortOrder: true,
+      },
+    });
+
+    if (!category) {
+      const details = [displayName?.trim(), normalizedSlug]
+        .filter(Boolean)
+        .join(' / ');
+      throw new NotFoundException(
+        details ? `Category not found: ${details}` : 'Category not found',
+      );
     }
 
     return category;
@@ -642,7 +676,20 @@ export class AdminService {
         continue;
       }
 
-      const idValue = (ref as Record<string, unknown>).id;
+      const categoryRef = ref as Record<string, unknown>;
+      const categoryName =
+        typeof categoryRef.name === 'string' ? categoryRef.name : undefined;
+
+      const slugValue = categoryRef.slug;
+      if (typeof slugValue === 'string' && slugValue.trim()) {
+        const category = await this.getCategoryBySlugOrThrow(
+          slugValue,
+          categoryName,
+        );
+        return category.id;
+      }
+
+      const idValue = categoryRef.id;
       if (idValue === undefined || idValue === null) {
         continue;
       }
@@ -650,11 +697,24 @@ export class AdminService {
       const categoryId = Number(idValue);
       if (!Number.isInteger(categoryId) || categoryId < 1) {
         throw new BadRequestException(
-          'categories.*.id must be a positive integer',
+          'categories.*.slug must be a non-empty string or categories.*.id must be a positive integer',
         );
       }
 
-      await this.getCategoryOrThrow(categoryId);
+      try {
+        await this.getCategoryOrThrow(categoryId);
+      } catch (error) {
+        if (error instanceof NotFoundException) {
+          const details = [categoryName?.trim(), String(categoryId)]
+            .filter(Boolean)
+            .join(' / ');
+          throw new NotFoundException(
+            details ? `Category not found: ${details}` : 'Category not found',
+          );
+        }
+        throw error;
+      }
+
       return categoryId;
     }
 
@@ -671,7 +731,9 @@ export class AdminService {
       return fallbackCategoryId;
     }
 
-    throw new BadRequestException('categories.main/subA/subB.id is required');
+    throw new BadRequestException(
+      'categories.main/subA/subB.slug or categories.main/subA/subB.id is required',
+    );
   }
 
   private async buildProductCategories(
@@ -680,6 +742,7 @@ export class AdminService {
     const chain: Array<{
       id: number;
       name: string;
+      slug: string;
       imageUrl: string | null;
       description: string | null;
       parentId: number | null;
@@ -691,6 +754,7 @@ export class AdminService {
       chain.unshift({
         id: category.id,
         name: category.name,
+        slug: category.slug,
         imageUrl: category.imageUrl,
         description: category.description,
         parentId: category.parentId,
@@ -703,6 +767,7 @@ export class AdminService {
         ? {
             id: chain[0].id,
             name: chain[0].name,
+            slug: chain[0].slug,
             imageUrl: chain[0].imageUrl,
             description: chain[0].description,
           }
@@ -711,6 +776,7 @@ export class AdminService {
         ? {
             id: chain[1].id,
             name: chain[1].name,
+            slug: chain[1].slug,
             imageUrl: chain[1].imageUrl,
             description: chain[1].description,
           }
@@ -719,6 +785,7 @@ export class AdminService {
         ? {
             id: chain[2].id,
             name: chain[2].name,
+            slug: chain[2].slug,
             imageUrl: chain[2].imageUrl,
             description: chain[2].description,
           }
