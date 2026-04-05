@@ -202,10 +202,7 @@ export class AdminService {
     return category;
   }
 
-  private async getCategoryBySlugOrThrow(
-    slug: string,
-    displayName?: string,
-  ) {
+  private async getCategoryBySlugOrThrow(slug: string, displayName?: string) {
     const normalizedSlug = slug.trim();
     const category = await prisma.category.findUnique({
       where: { slug: normalizedSlug },
@@ -736,48 +733,6 @@ export class AdminService {
     );
   }
 
-  private async resolveImportedProductCategoryId(
-    body: Record<string, unknown>,
-  ) {
-    const categories =
-      body.categories &&
-      typeof body.categories === 'object' &&
-      !Array.isArray(body.categories)
-        ? (body.categories as Record<string, unknown>)
-        : undefined;
-
-    const refs = [categories?.subB, categories?.subA, categories?.main];
-    for (const ref of refs) {
-      if (!ref || typeof ref !== 'object' || Array.isArray(ref)) {
-        continue;
-      }
-
-      const categoryRef = ref as Record<string, unknown>;
-      const categoryName =
-        typeof categoryRef.name === 'string' ? categoryRef.name : undefined;
-      const slugValue =
-        typeof categoryRef.slug === 'string' && categoryRef.slug.trim()
-          ? categoryRef.slug
-          : typeof categoryRef.name === 'string' && categoryRef.name.trim()
-            ? categoryRef.name
-            : undefined;
-
-      if (!slugValue) {
-        continue;
-      }
-
-      const category = await this.getCategoryBySlugOrThrow(
-        slugValue,
-        categoryName,
-      );
-      return category.id;
-    }
-
-    throw new BadRequestException(
-      'Imported products require categories.main/subA/subB.slug',
-    );
-  }
-
   private async buildProductCategories(
     categoryId: number,
   ): Promise<ProductCategoryPayload> {
@@ -933,9 +888,7 @@ export class AdminService {
             : String(brandInput.description)
           : null,
       isActive:
-        brandInput.isActive !== undefined
-          ? Boolean(brandInput.isActive)
-          : true,
+        brandInput.isActive !== undefined ? Boolean(brandInput.isActive) : true,
     };
 
     if (id !== undefined) {
@@ -1332,7 +1285,10 @@ export class AdminService {
             : null,
         characteristics: this.toProductCharacteristics(body.specifications),
         price: hasDiscount
-          ? this.normalizeDecimalString(discount?.new_price, 'discount.new_price')
+          ? this.normalizeDecimalString(
+              discount?.new_price,
+              'discount.new_price',
+            )
           : basePrice,
         oldPrice: hasDiscount ? basePrice : null,
         stockQty:
@@ -1508,7 +1464,9 @@ export class AdminService {
 
   async importAdminProducts(items: Record<string, unknown>[]) {
     if (!Array.isArray(items) || items.length === 0) {
-      throw new BadRequestException('Body must be a non-empty array of products');
+      throw new BadRequestException(
+        'Body must be a non-empty array of products',
+      );
     }
 
     const importedProducts: Awaited<
@@ -1526,10 +1484,7 @@ export class AdminService {
         item.slug !== undefined && item.slug !== null
           ? String(item.slug).trim()
           : '';
-      const sku =
-        item.sku !== undefined && item.sku !== null
-          ? String(item.sku).trim()
-          : '';
+      const sku = slug;
 
       if (!title || !slug || !sku || item.price === undefined) {
         throw new BadRequestException(
@@ -1537,7 +1492,7 @@ export class AdminService {
         );
       }
 
-      const categoryId = await this.resolveImportedProductCategoryId(item);
+      const categoryId = await this.resolveProductCategoryId(item);
       const brand =
         item.brand !== undefined &&
         item.brand !== null &&
@@ -1583,7 +1538,10 @@ export class AdminService {
             : null,
         characteristics: this.toProductCharacteristics(item.specifications),
         price: hasDiscount
-          ? this.normalizeDecimalString(discount?.new_price, 'discount.new_price')
+          ? this.normalizeDecimalString(
+              discount?.new_price,
+              'discount.new_price',
+            )
           : basePrice,
         oldPrice: hasDiscount ? basePrice : null,
         stockQty: Boolean(item.inStock) ? 1 : 0,
@@ -1605,12 +1563,10 @@ export class AdminService {
 
       const importedId = this.parseImportedNumericId(item.id, 'id');
 
-      let existingProduct:
-        | {
-            id: number;
-            brandId: number | null;
-          }
-        | null = null;
+      let existingProduct: {
+        id: number;
+        brandId: number | null;
+      } | null = null;
 
       if (importedId !== undefined) {
         existingProduct = await prisma.product.findUnique({
@@ -1769,7 +1725,11 @@ export class AdminService {
           categories?: ImportedCategoryNodeInput[];
         }),
   ) {
-    const batchBody = !Array.isArray(body) ? ('categories' in body ? body : null) : null;
+    const batchBody = !Array.isArray(body)
+      ? 'categories' in body
+        ? body
+        : null
+      : null;
     const categoriesToImport = Array.isArray(body)
       ? body
       : Array.isArray(batchBody?.categories)
