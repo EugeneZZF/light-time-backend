@@ -736,6 +736,48 @@ export class AdminService {
     );
   }
 
+  private async resolveImportedProductCategoryId(
+    body: Record<string, unknown>,
+  ) {
+    const categories =
+      body.categories &&
+      typeof body.categories === 'object' &&
+      !Array.isArray(body.categories)
+        ? (body.categories as Record<string, unknown>)
+        : undefined;
+
+    const refs = [categories?.subB, categories?.subA, categories?.main];
+    for (const ref of refs) {
+      if (!ref || typeof ref !== 'object' || Array.isArray(ref)) {
+        continue;
+      }
+
+      const categoryRef = ref as Record<string, unknown>;
+      const categoryName =
+        typeof categoryRef.name === 'string' ? categoryRef.name : undefined;
+      const slugValue =
+        typeof categoryRef.slug === 'string' && categoryRef.slug.trim()
+          ? categoryRef.slug
+          : typeof categoryRef.name === 'string' && categoryRef.name.trim()
+            ? categoryRef.name
+            : undefined;
+
+      if (!slugValue) {
+        continue;
+      }
+
+      const category = await this.getCategoryBySlugOrThrow(
+        slugValue,
+        categoryName,
+      );
+      return category.id;
+    }
+
+    throw new BadRequestException(
+      'Imported products require categories.main/subA/subB.slug',
+    );
+  }
+
   private async buildProductCategories(
     categoryId: number,
   ): Promise<ProductCategoryPayload> {
@@ -1495,7 +1537,7 @@ export class AdminService {
         );
       }
 
-      const categoryId = await this.resolveProductCategoryId(item);
+      const categoryId = await this.resolveImportedProductCategoryId(item);
       const brand =
         item.brand !== undefined &&
         item.brand !== null &&

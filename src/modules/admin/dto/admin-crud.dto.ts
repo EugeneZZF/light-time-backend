@@ -280,6 +280,54 @@ export class CreateAdminProductDto {
 
 export class UpdateAdminProductDto extends PartialType(CreateAdminProductDto) {}
 
+export class ImportAdminProductCategoryRefDto {
+  @ApiPropertyOptional({
+    example: 'vnutrennee-osveschenie',
+    description: 'Category slug used to resolve categoryId during import',
+  })
+  @IsOptional()
+  @IsString()
+  slug?: string;
+
+  @ApiPropertyOptional({
+    example: 'vnutrennee-osveschenie',
+    description:
+      'Legacy fallback. If slug is omitted, import will try to treat name as slug',
+  })
+  @IsOptional()
+  @IsString()
+  name?: string;
+}
+
+export class ImportAdminProductCategoriesDto {
+  @ApiPropertyOptional({
+    type: ImportAdminProductCategoryRefDto,
+    nullable: true,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ImportAdminProductCategoryRefDto)
+  main?: ImportAdminProductCategoryRefDto | null;
+
+  @ApiPropertyOptional({
+    type: ImportAdminProductCategoryRefDto,
+    nullable: true,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ImportAdminProductCategoryRefDto)
+  subA?: ImportAdminProductCategoryRefDto | null;
+
+  @ApiPropertyOptional({
+    type: ImportAdminProductCategoryRefDto,
+    nullable: true,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ImportAdminProductCategoryRefDto)
+  subB?: ImportAdminProductCategoryRefDto | null;
+}
+
 export class ImportAdminProductDto {
   @ApiPropertyOptional({ example: '123' })
   @IsOptional()
@@ -340,10 +388,10 @@ export class ImportAdminProductDto {
   @Type(() => AdminProductDiscountDto)
   discount?: AdminProductDiscountDto;
 
-  @ApiProperty({ type: AdminProductCategoriesDto })
+  @ApiProperty({ type: ImportAdminProductCategoriesDto })
   @ValidateNested()
-  @Type(() => AdminProductCategoriesDto)
-  categories!: AdminProductCategoriesDto;
+  @Type(() => ImportAdminProductCategoriesDto)
+  categories!: ImportAdminProductCategoriesDto;
 
   @ApiPropertyOptional({ example: true })
   @IsOptional()
