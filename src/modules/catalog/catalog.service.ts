@@ -10,6 +10,7 @@ export class CatalogService {
     const chain: Array<{
       id: number;
       name: string;
+      slug: string;
       imageUrl: string | null;
       description: string | null;
       parentId: number | null;
@@ -19,7 +20,14 @@ export class CatalogService {
     while (currentId !== null) {
       const category = await prisma.category.findUnique({
         where: { id: currentId },
-        select: { id: true, name: true, imageUrl: true, description: true, parentId: true },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          imageUrl: true,
+          description: true,
+          parentId: true,
+        },
       });
 
       if (!category) {
@@ -35,6 +43,7 @@ export class CatalogService {
         ? {
             id: chain[0].id,
             name: chain[0].name,
+            slug: chain[0].slug,
             imageUrl: chain[0].imageUrl,
             description: chain[0].description,
           }
@@ -43,6 +52,7 @@ export class CatalogService {
         ? {
             id: chain[1].id,
             name: chain[1].name,
+            slug: chain[1].slug,
             imageUrl: chain[1].imageUrl,
             description: chain[1].description,
           }
@@ -51,6 +61,7 @@ export class CatalogService {
         ? {
             id: chain[2].id,
             name: chain[2].name,
+            slug: chain[2].slug,
             imageUrl: chain[2].imageUrl,
             description: chain[2].description,
           }
@@ -230,14 +241,9 @@ export class CatalogService {
     }
 
     if (query.categorySlug) {
-      const category = await prisma.category.findUnique({
-        where: { slug: query.categorySlug },
-        select: { id: true },
-      });
-      if (!category) {
-        return { items: [], page, limit, total: 0, totalPages: 0 };
-      }
-      where.categoryId = category.id;
+      where.category = {
+        slug: query.categorySlug,
+      };
     }
 
     if (query.brandSlug) {
