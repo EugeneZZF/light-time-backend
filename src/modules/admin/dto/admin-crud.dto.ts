@@ -124,6 +124,34 @@ export class AdminProductBrandRefDto {
   description?: string | null;
 }
 
+export class ImportAdminProductBrandRefDto {
+  @ApiPropertyOptional({ example: 1, nullable: true })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  id?: number | null;
+
+  @ApiPropertyOptional({ example: 'Nordic Aluminium', nullable: true })
+  @IsOptional()
+  @IsString()
+  name?: string | null;
+
+  @ApiPropertyOptional({ example: 'nordic-aluminium', nullable: true })
+  @IsOptional()
+  @IsString()
+  slug?: string | null;
+
+  @ApiPropertyOptional({ example: '/uploads/brand-nordic.webp', nullable: true })
+  @IsOptional()
+  @IsString()
+  imageUrl?: string | null;
+
+  @ApiPropertyOptional({ example: 'Brand description', nullable: true })
+  @IsOptional()
+  @IsString()
+  description?: string | null;
+}
+
 export class AdminProductSpecificationsDto {
   @ApiPropertyOptional({
     example: 'Wall-ceiling luminaires',
@@ -362,11 +390,11 @@ export class ImportAdminProductDto {
   @IsString()
   description?: string | null;
 
-  @ApiPropertyOptional({ type: AdminProductBrandRefDto, nullable: true })
+  @ApiPropertyOptional({ type: ImportAdminProductBrandRefDto, nullable: true })
   @IsOptional()
   @ValidateNested()
-  @Type(() => AdminProductBrandRefDto)
-  brand?: AdminProductBrandRefDto | null;
+  @Type(() => ImportAdminProductBrandRefDto)
+  brand?: ImportAdminProductBrandRefDto | null;
 
   @ApiPropertyOptional({ type: [AdminProductImageDto] })
   @IsOptional()

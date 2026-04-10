@@ -1502,10 +1502,20 @@ export class AdminService {
           : item.brand === null
             ? null
             : undefined;
+      const shouldUpsertBrand =
+        brand !== null &&
+        brand !== undefined &&
+        (brand.name !== undefined ||
+          brand.slug !== undefined ||
+          brand.imageUrl !== undefined ||
+          brand.description !== undefined ||
+          brand.isActive !== undefined);
       const brandId =
-        brand !== undefined
-          ? await this.upsertImportedBrand(brand)
-          : await this.resolveProductBrand(item, null);
+        brand === null
+          ? null
+          : shouldUpsertBrand
+            ? await this.upsertImportedBrand(brand)
+            : await this.resolveProductBrand(item, null);
 
       const discount =
         item.discount &&
