@@ -515,6 +515,23 @@ export class AdminService {
     return candidate;
   }
 
+  private getMeaningfulImportSku(value: unknown): string | undefined {
+    if (value === undefined || value === null) {
+      return undefined;
+    }
+
+    const normalized = String(value).trim();
+    if (!normalized) {
+      return undefined;
+    }
+
+    if (normalized.toUpperCase() === 'SKU_UNKNOWN') {
+      return undefined;
+    }
+
+    return normalized;
+  }
+
   private toProductImages(
     value: unknown,
   ): Prisma.ProductImageCreateWithoutProductInput[] | undefined {
@@ -1526,6 +1543,7 @@ export class AdminService {
       const images = this.toProductImages(item.img ?? item.images);
       const hasDiscount = discount ? Boolean(discount.hasDiscount) : false;
       const basePrice = this.normalizeDecimalString(item.price, 'price');
+      const importedSku = this.getMeaningfulImportSku(item.sku);
 
       if (
         hasDiscount &&
@@ -1537,7 +1555,6 @@ export class AdminService {
       }
 
       const productData = {
-        sku,
         slug,
         name: title,
         description:
@@ -1576,26 +1593,27 @@ export class AdminService {
       let existingProduct: {
         id: number;
         brandId: number | null;
+        sku: string;
       } | null = null;
 
       if (importedId !== undefined) {
         existingProduct = await prisma.product.findUnique({
           where: { id: importedId },
-          select: { id: true, brandId: true },
+          select: { id: true, brandId: true, sku: true },
         });
       }
 
       if (!existingProduct) {
         existingProduct = await prisma.product.findUnique({
           where: { slug },
-          select: { id: true, brandId: true },
+          select: { id: true, brandId: true, sku: true },
         });
       }
 
-      if (!existingProduct) {
+      if (!existingProduct && importedSku) {
         existingProduct = await prisma.product.findUnique({
-          where: { sku },
-          select: { id: true, brandId: true },
+          where: { sku: importedSku },
+          select: { id: true, brandId: true, sku: true },
         });
       }
 
@@ -1603,6 +1621,7 @@ export class AdminService {
         ? await prisma.product.update({
             where: { id: existingProduct.id },
             data: {
+              sku: importedSku ?? existingProduct.sku,
               ...productData,
               images:
                 images !== undefined
@@ -1631,6 +1650,7 @@ export class AdminService {
         : await prisma.product.create({
             data: {
               ...(importedId !== undefined ? { id: importedId } : {}),
+              sku: importedSku ?? (await this.generateUniqueProductSku()),
               ...productData,
               images: images !== undefined ? { create: images } : undefined,
             },
