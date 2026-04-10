@@ -6,6 +6,14 @@ import { CatalogProductsQueryDto } from './dto/catalog-products-query.dto';
 
 @Injectable()
 export class CatalogService {
+  private readonly catalogBrandSelect = {
+    id: true,
+    name: true,
+    slug: true,
+    imageUrl: true,
+    description: true,
+  } as const;
+
   private async buildProductCategories(categoryId: number) {
     const chain: Array<{
       id: number;
@@ -225,8 +233,21 @@ export class CatalogService {
     return prisma.brand.findMany({
       where: { isActive: true },
       orderBy: { name: 'asc' },
-      select: { id: true, name: true, slug: true, imageUrl: true, description: true },
+      select: this.catalogBrandSelect,
     });
+  }
+
+  async getBrandBySlug(slug: string) {
+    const brand = await prisma.brand.findFirst({
+      where: { slug, isActive: true },
+      select: this.catalogBrandSelect,
+    });
+
+    if (!brand) {
+      throw new NotFoundException('Brand not found');
+    }
+
+    return brand;
   }
 
   async getProducts(query: CatalogProductsQueryDto) {

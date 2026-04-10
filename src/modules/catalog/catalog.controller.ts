@@ -36,6 +36,14 @@ export class CatalogController {
     return this.catalogService.getBrands();
   }
 
+  @Get('brands/:slug')
+  @ApiOperation({ summary: 'Get active brand by slug' })
+  @ApiParam({ name: 'slug', type: String, description: 'Brand slug' })
+  @ApiOkResponse({ type: CatalogBrandDto })
+  getBrandBySlug(@Param('slug') slug: string) {
+    return this.catalogService.getBrandBySlug(slug);
+  }
+
   @Get('products')
   @ApiOperation({ summary: 'Get catalog products with filters and pagination' })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number' })
