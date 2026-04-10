@@ -1596,16 +1596,14 @@ export class AdminService {
         sku: string;
       } | null = null;
 
-      if (importedId !== undefined) {
+      existingProduct = await prisma.product.findUnique({
+        where: { slug },
+        select: { id: true, brandId: true, sku: true },
+      });
+
+      if (!existingProduct && importedId !== undefined) {
         existingProduct = await prisma.product.findUnique({
           where: { id: importedId },
-          select: { id: true, brandId: true, sku: true },
-        });
-      }
-
-      if (!existingProduct) {
-        existingProduct = await prisma.product.findUnique({
-          where: { slug },
           select: { id: true, brandId: true, sku: true },
         });
       }
